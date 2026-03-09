@@ -4,61 +4,62 @@ Store.h
 
 Authors: Destiny, Chengqi, Parisa
 
-This class represents the movie store system.
+Main system class for the Movie Store.
 
 Responsibilities:
-- Store the movie inventory
-- Store customer records
-- Load data from files
-- Process commands
-- Handle borrow/return operations
-- Display inventory and customer history
+• Load movie inventory from file
+• Load customer records
+• Process command file
+• Handle borrow and return operations
+• Display sorted inventory
+• Display customer history
+
+Inventory is stored in three separate containers
+to maintain the required sorting order:
+
+Comedy  -> sorted by title then year
+Drama   -> sorted by director then title
+Classic -> sorted by release date then actor
 ------------------------------------------------------------
 */
 
 #ifndef STORE_H
 #define STORE_H
 
+#include <vector>
 #include <map>
-#include <string>
-#include "MovieFactory.h"
+#include "Comedy.h"
+#include "Drama.h"
+#include "Classic.h"
 #include "Customer.h"
-
-using namespace std;
 
 class Store {
 
 private:
 
-    // Inventory of movies
-    // key = unique movie key
-    map<string, Movie*> inventory;
+    // Inventory containers separated by movie type
+    map<string, Comedy*> comedyMovies;
+    map<string, Drama*> dramaMovies;
+    map<string, Classic*> classicMovies;
 
-    // Customers indexed by ID
+    // Customers stored by ID
     map<int, Customer*> customers;
 
 public:
 
-    // Load customers from file
     void loadCustomers(string filename);
 
-    // Load movie inventory from file
     void loadMovies(string filename);
 
-    // Process command file
     void processCommands(string filename);
 
-    // Display all movies in inventory
     void showInventory();
 
-    // Show customer transaction history
     void showHistory(int id);
 
-    // Borrow movie operation
-    void borrowMovie(int id, string key);
+    void borrowMovie(int id, char type, string key);
 
-    // Return movie operation
-    void returnMovie(int id, string key);
+    void returnMovie(int id, char type, string key);
 };
 
 #endif
