@@ -4,17 +4,20 @@ Store.cpp
 
 Authors: Destiny, Chengqi, Parisa
 
-Implementation of the Store class.
+Implements the main movie store logic.
 
-This file performs most of the system work:
-- reading input files
-- managing inventory
-- managing customers
-- executing commands
+This file handles:
+• Reading input files
+• Creating movie objects
+• Managing customers
+• Processing commands
+• Maintaining sorted inventory
 ------------------------------------------------------------
 */
 
 #include "Store.h"
+#include "MovieFactory.h"
+
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -26,9 +29,10 @@ using namespace std;
 ------------------------------------------------------------
 loadCustomers()
 
-Reads the customer file and creates Customer objects.
-Each line format:
-    ID LastName FirstName
+Reads customer data file.
+
+Format:
+ID LastName FirstName
 ------------------------------------------------------------
 */
 void Store::loadCustomers(string filename)
@@ -36,7 +40,8 @@ void Store::loadCustomers(string filename)
     ifstream file(filename);
 
     int id;
-    string last, first;
+    string last;
+    string first;
 
     while (file >> id >> last >> first)
     {
@@ -49,18 +54,17 @@ void Store::loadCustomers(string filename)
 ------------------------------------------------------------
 loadMovies()
 
-Reads the movie file and creates Movie objects using
-the MovieFactory.
+Reads movie inventory file.
 
-Handles three movie types:
-F - Comedy
-D - Drama
-C - Classic
+Creates movie objects using MovieFactory.
+
+Invalid movie codes are ignored and reported.
 ------------------------------------------------------------
 */
 void Store::loadMovies(string filename)
 {
     ifstream file(filename);
+
     string line;
 
     while (getline(file, line))
@@ -70,56 +74,62 @@ void Store::loadMovies(string filename)
         char type;
         int stock;
 
-        string director;
-        string title;
-
         ss >> type;
-
-        ss.ignore(2); // skip ", "
+        ss.ignore(2);
 
         ss >> stock;
         ss.ignore(2);
 
+        string director;
         getline(ss, director, ',');
 
         ss.ignore(1);
 
+        string title;
         getline(ss, title, ',');
 
-        if (type == 'F' || type == 'D')
+        if (type == 'F')
         {
             int year;
             ss >> year;
 
-            Movie* movie =
-                MovieFactory::createMovie(type, stock,
-                                          director, title,
-                                          "", "", 0, year);
+            Comedy* movie =
+                new Comedy(stock, director, title, year);
 
-            if (movie)
-                inventory[movie->getKey()] = movie;
+            comedyMovies[movie->getKey()] = movie;
+        }
+
+        else if (type == 'D')
+        {
+            int year;
+            ss >> year;
+
+            Drama* movie =
+                new Drama(stock, director, title, year);
+
+            dramaMovies[movie->getKey()] = movie;
         }
 
         else if (type == 'C')
         {
-            string actorFirst, actorLast;
-            int month, year;
+            string actorFirst;
+            string actorLast;
+            int month;
+            int year;
 
             ss >> actorFirst >> actorLast >> month >> year;
 
-            Movie* movie =
-                MovieFactory::createMovie(type, stock,
-                                          director, title,
-                                          actorFirst, actorLast,
-                                          month, year);
+            Classic* movie =
+                new Classic(stock, director, title,
+                            actorFirst, actorLast,
+                            month, year);
 
-            if (movie)
-                inventory[movie->getKey()] = movie;
+            classicMovies[movie->getKey()] = movie;
         }
 
         else
         {
-            cout << "Invalid movie type: " << type << endl;
+            cout << "Invalid movie code: " << type << endl;
         }
     }
 }
@@ -129,9 +139,9 @@ void Store::loadMovies(string filename)
 ------------------------------------------------------------
 processCommands()
 
-Reads the command file and executes each command.
+Reads command file and executes each command.
 
-Supported commands:
+Commands:
 B -> Borrow
 R -> Return
 I -> Inventory
@@ -172,14 +182,19 @@ void Store::processCommands(string filename)
 
             ss >> id >> media >> type;
 
+            if (media != 'D')
+            {
+                cout << "Invalid media type" << endl;
+                continue;
+            }
+
             string key;
             getline(ss, key);
 
             if (action == 'B')
-                borrowMovie(id, key);
-
+                borrowMovie(id, type, key);
             else
-                returnMovie(id, key);
+                returnMovie(id, type, key);
         }
 
         else
@@ -194,17 +209,30 @@ void Store::processCommands(string filename)
 ------------------------------------------------------------
 showInventory()
 
-Prints all movies currently in the store inventory.
+Displays all movies in the store.
+
+Required order:
+Comedy
+Drama
+Classic
 ------------------------------------------------------------
 */
 void Store::showInventory()
 {
-    cout << "Inventory:" << endl;
+    cout << "Comedy Movies:" << endl;
 
-    for (auto& item : inventory)
-    {
-        item.second->display();
-    }
+    for (auto &m : comedyMovies)
+        m.second->display();
+
+    cout << endl << "Drama Movies:" << endl;
+
+    for (auto &m : dramaMovies)
+        m.second->display();
+
+    cout << endl << "Classic Movies:" << endl;
+
+    for (auto &m : classicMovies)
+        m.second->display();
 }
 
 
@@ -212,14 +240,14 @@ void Store::showInventory()
 ------------------------------------------------------------
 showHistory()
 
-Displays the transaction history for a specific customer.
+Prints transaction history for a customer.
 ------------------------------------------------------------
 */
 void Store::showHistory(int id)
 {
     if (customers.count(id) == 0)
     {
-        cout << "Customer not found: " << id << endl;
+        cout << "Invalid customer ID: " << id << endl;
         return;
     }
 
@@ -231,14 +259,15 @@ void Store::showHistory(int id)
 ------------------------------------------------------------
 borrowMovie()
 
-Handles the borrow operation:
-- verify customer exists
-- verify movie exists
-- decrease stock
-- update customer record
+Handles borrowing operation.
+
+Checks:
+• valid customer
+• movie exists
+• stock available
 ------------------------------------------------------------
 */
-void Store::borrowMovie(int id, string key)
+void Store::borrowMovie(int id, char type, string key)
 {
     if (customers.count(id) == 0)
     {
@@ -246,17 +275,26 @@ void Store::borrowMovie(int id, string key)
         return;
     }
 
-    if (inventory.count(key) == 0)
+    Movie* movie = nullptr;
+
+    if (type == 'F' && comedyMovies.count(key))
+        movie = comedyMovies[key];
+
+    else if (type == 'D' && dramaMovies.count(key))
+        movie = dramaMovies[key];
+
+    else if (type == 'C' && classicMovies.count(key))
+        movie = classicMovies[key];
+
+    else
     {
-        cout << "Movie not found." << endl;
+        cout << "Movie not found" << endl;
         return;
     }
 
-    Movie* movie = inventory[key];
-
     if (!movie->borrowMovie())
     {
-        cout << "Movie out of stock." << endl;
+        cout << "Out of stock" << endl;
         return;
     }
 
@@ -271,25 +309,36 @@ returnMovie()
 Handles returning a movie.
 ------------------------------------------------------------
 */
-void Store::returnMovie(int id, string key)
+void Store::returnMovie(int id, char type, string key)
 {
     if (customers.count(id) == 0)
     {
-        cout << "Invalid customer ID." << endl;
+        cout << "Invalid customer ID" << endl;
         return;
     }
 
-    if (inventory.count(key) == 0)
+    Movie* movie = nullptr;
+
+    if (type == 'F' && comedyMovies.count(key))
+        movie = comedyMovies[key];
+
+    else if (type == 'D' && dramaMovies.count(key))
+        movie = dramaMovies[key];
+
+    else if (type == 'C' && classicMovies.count(key))
+        movie = classicMovies[key];
+
+    else
     {
-        cout << "Movie not found." << endl;
+        cout << "Movie not found" << endl;
         return;
     }
 
     if (!customers[id]->returnMovie(key))
     {
-        cout << "Customer did not borrow this movie." << endl;
+        cout << "Customer did not borrow this movie" << endl;
         return;
     }
 
-    inventory[key]->returnMovie();
+    movie->returnMovie();
 }
