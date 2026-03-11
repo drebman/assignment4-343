@@ -18,7 +18,7 @@ Responsibilities of this file:
 */
 
 #include "Store.h"
-#include "MovieFactory.h"
+#include "Movie.h"
 
 #include <fstream>
 #include <sstream>
