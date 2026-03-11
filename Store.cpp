@@ -26,22 +26,12 @@ Responsibilities of this file:
 
 using namespace std;
 
-## /*
-
-Store Destructor
-
-Frees all dynamically allocated memory created in the store.
-This prevents memory leaks when the program exits.
---------------------------------------------------
-
-*/
 Store::~Store()
 {
 // delete customers
 for (auto &c : customers)
 delete c.second;
 
-```
 // delete comedy movies
 for (auto &m : comedyMovies)
     delete m.second;
@@ -53,11 +43,10 @@ for (auto &m : dramaMovies)
 // delete classic movies
 for (auto &m : classicMovies)
     delete m.second;
-```
 
 }
 
-## /*
+/*
 
 loadCustomers()
 
@@ -75,7 +64,6 @@ void Store::loadCustomers(string filename)
 {
 ifstream file(filename);
 
-```
 // verify file opened correctly
 if (!file)
 {
@@ -92,11 +80,10 @@ while (file >> id >> last >> first)
 {
     customers[id] = new Customer(id, last, first);
 }
-```
 
 }
 
-## /*
+/*
 
 loadMovies()
 
@@ -104,15 +91,13 @@ Reads movie inventory file and creates movie objects.
 
 Uses MovieFactory to determine which movie subclass
 (Comedy, Drama, Classic) should be created.
-
-## Invalid movie codes are reported and ignored.
+Invalid movie codes are reported and ignored.
 
 */
 void Store::loadMovies(string filename)
 {
 ifstream file(filename);
 
-```
 if (!file)
 {
     cout << "Error opening file: " << filename << endl;
@@ -199,11 +184,10 @@ while (getline(file, line))
         cout << "Invalid movie code: " << type << endl;
     }
 }
-```
 
 }
 
-## /*
+/*
 
 processCommands()
 
@@ -225,7 +209,6 @@ void Store::processCommands(string filename)
 {
 ifstream file(filename);
 
-```
 if (!file)
 {
     cout << "Error opening file: " << filename << endl;
@@ -355,11 +338,9 @@ while (getline(file, line))
         cout << "Invalid command: " << line << endl;
     }
 }
-```
 
 }
-
-## /*
+/*
 
 showInventory()
 
@@ -370,8 +351,6 @@ Movies must be displayed in this order:
 1. Comedy
 2. Drama
 3. Classic
-
----
 
 */
 void Store::showInventory()
@@ -391,11 +370,10 @@ cout << endl << "Classic Movies:" << endl;
 
 for (auto &m : classicMovies)
     m.second->display();
-```
 
 }
 
-## /*
+/*
 
 showHistory()
 
@@ -410,13 +388,11 @@ cout << "Invalid customer ID: " << id << endl;
 return;
 }
 
-```
 customers[id]->showHistory();
-```
 
 }
 
-## /*
+/*
 
 borrowMovie()
 
@@ -437,7 +413,6 @@ cout << "Invalid customer ID: " << id << endl;
 return;
 }
 
-```
 Movie* movie = nullptr;
 
 if (type == 'F' && comedyMovies.count(key))
@@ -464,11 +439,10 @@ if (!movie->borrowMovie())
 
 // record transaction in customer history
 customers[id]->borrowMovie(key);
-```
 
 }
 
-## /*
+/*
 
 returnMovie()
 
@@ -483,7 +457,6 @@ cout << "Invalid customer ID" << endl;
 return;
 }
 
-```
 Movie* movie = nullptr;
 
 if (type == 'F' && comedyMovies.count(key))
@@ -510,6 +483,5 @@ if (!customers[id]->returnMovie(key))
 
 // return movie to inventory
 movie->returnMovie();
-```
 
 }
