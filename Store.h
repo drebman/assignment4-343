@@ -1,4 +1,4 @@
-## /*
+/*
 
 Store.h
 
@@ -42,7 +42,7 @@ class Store {
 
 private:
 
-```
+
 /*
 ------------------------------------------------------------
 Movie inventory containers
@@ -70,11 +70,9 @@ value = pointer to Customer object
 */
 
 map<int, Customer*> customers;
-```
 
 public:
 
-```
 /*
 ------------------------------------------------------------
 Destructor
@@ -165,7 +163,6 @@ Processes a return transaction for a movie.
 ------------------------------------------------------------
 */
 void returnMovie(int id, char type, string key);
-```
 
 };
 
